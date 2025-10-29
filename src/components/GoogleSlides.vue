@@ -2,23 +2,53 @@
 import type { GoogleSlidesProps } from "./GoogleSlides.types"
 import { computed, ref } from "vue"
 import { cn } from "@/lib/utils"
-import { Maximize2 } from "lucide-vue-next"
+import { Maximize2, Minimize2 } from "lucide-vue-next"
 import { Button } from "@/components/ui"
 
 const props = defineProps<GoogleSlidesProps>()
 
 const containerRef = ref<HTMLElement | null>(null)
+const iframeRef = ref<HTMLIFrameElement | null>(null)
+const isCustomFullscreen = ref(false)
 
 /**
- * Toggle fullscreen mode
+ * Toggle fullscreen mode with iOS Safari support
  */
 const toggleFullscreen = () => {
   if (!containerRef.value) return
 
-  if (!document.fullscreenElement) {
-    containerRef.value.requestFullscreen()
-  } else {
+  // Check if browser supports standard Fullscreen API
+  if (document.fullscreenElement) {
     document.exitFullscreen()
+    return
+  }
+
+  // Try standard Fullscreen API first (works on most desktop browsers)
+  if (containerRef.value.requestFullscreen) {
+    containerRef.value.requestFullscreen().catch(() => {
+      // Fallback to custom fullscreen if standard API fails
+      toggleCustomFullscreen()
+    })
+  } else {
+    // Use custom fullscreen for browsers that don't support Fullscreen API (like iOS Safari)
+    toggleCustomFullscreen()
+  }
+}
+
+/**
+ * Custom fullscreen implementation for iOS and unsupported browsers
+ */
+const toggleCustomFullscreen = () => {
+  if (!containerRef.value) return
+
+  isCustomFullscreen.value = !isCustomFullscreen.value
+
+  if (isCustomFullscreen.value) {
+    // Prevent body scrolling when in custom fullscreen
+    document.body.style.overflow = 'hidden'
+  } else {
+    // Restore body scrolling
+    document.body.style.overflow = ''
   }
 }
 
@@ -75,10 +105,15 @@ const embedUrl = computed(() => {
 <template>
   <div
     ref="containerRef"
-    :class="cn('w-full aspect-[16/10] rounded-lg overflow-hidden border border-border bg-muted relative group', props.class)"
+    :class="cn(
+      'w-full aspect-[16/10] rounded-lg overflow-hidden border border-border bg-muted relative group',
+      isCustomFullscreen && 'fixed inset-0 z-[9999] aspect-auto rounded-none border-0',
+      props.class
+    )"
   >
     <iframe
       v-if="embedUrl"
+      ref="iframeRef"
       :src="embedUrl"
       class="w-full h-full absolute inset-0"
       frameborder="0"
@@ -102,9 +137,10 @@ const embedUrl = computed(() => {
       size="icon"
       variant="secondary"
       class="absolute bottom-4 right-4 z-50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg hover:shadow-xl pointer-events-auto"
-      aria-label="Toggle fullscreen"
+      :aria-label="isCustomFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
     >
-      <Maximize2 class="size-5" />
+      <Minimize2 v-if="isCustomFullscreen" class="size-5" />
+      <Maximize2 v-else class="size-5" />
     </Button>
   </div>
 </template>
