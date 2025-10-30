@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { GoogleSlidesProps } from "./GoogleSlides.types"
-import { computed, nextTick, ref } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue"
 import { cn } from "@/lib/utils"
 import { Maximize2, Minimize2 } from "lucide-vue-next"
 import { Button } from "@/components/ui"
@@ -10,6 +10,12 @@ const props = defineProps<GoogleSlidesProps>()
 const containerRef = ref<HTMLElement | null>(null)
 const iframeRef = ref<HTMLIFrameElement | null>(null)
 const isCustomFullscreen = ref(false)
+const isStandardFullscreen = ref(false)
+
+/**
+ * Check if we're in any fullscreen mode (standard or custom)
+ */
+const isFullscreen = computed(() => isStandardFullscreen.value || isCustomFullscreen.value)
 
 /**
  * Toggle fullscreen mode with iOS Safari support
@@ -112,6 +118,24 @@ const embedUrl = computed(() => {
     return `https://docs.google.com/presentation/d/${presentation.id}/embed?${queryString}`
   }
 })
+
+/**
+ * Handle fullscreen change events for standard Fullscreen API
+ */
+const handleFullscreenChange = () => {
+  isStandardFullscreen.value = !!document.fullscreenElement
+}
+
+/**
+ * Set up event listeners for fullscreen changes
+ */
+onMounted(() => {
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+})
 </script>
 
 <template>
@@ -149,9 +173,9 @@ const embedUrl = computed(() => {
       size="icon"
       variant="secondary"
       class="absolute bottom-4 right-4 z-50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg hover:shadow-xl pointer-events-auto"
-      :aria-label="isCustomFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+      :aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
     >
-      <Minimize2 v-if="isCustomFullscreen" class="size-5" />
+      <Minimize2 v-if="isFullscreen" class="size-5" />
       <Maximize2 v-else class="size-5" />
     </Button>
   </div>
