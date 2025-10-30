@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { GoogleSlidesProps } from "./GoogleSlides.types"
-import { computed, ref } from "vue"
+import { computed, nextTick, ref } from "vue"
 import { cn } from "@/lib/utils"
 import { Maximize2, Minimize2 } from "lucide-vue-next"
 import { Button } from "@/components/ui"
@@ -38,7 +38,7 @@ const toggleFullscreen = () => {
 /**
  * Custom fullscreen implementation for iOS and unsupported browsers
  */
-const toggleCustomFullscreen = () => {
+const toggleCustomFullscreen = async () => {
   if (!containerRef.value) return
 
   isCustomFullscreen.value = !isCustomFullscreen.value
@@ -46,6 +46,18 @@ const toggleCustomFullscreen = () => {
   if (isCustomFullscreen.value) {
     // Prevent body scrolling when in custom fullscreen
     document.body.style.overflow = 'hidden'
+
+    // Wait for Vue to update the DOM
+    await nextTick()
+
+    // Force a reflow to ensure iframe resizes properly on mobile
+    if (iframeRef.value) {
+      // Read offsetHeight to force browser to recalculate layout
+      void iframeRef.value.offsetHeight
+
+      // Trigger window resize event to notify iframe of size change
+      window.dispatchEvent(new Event('resize'))
+    }
   } else {
     // Restore body scrolling
     document.body.style.overflow = ''
