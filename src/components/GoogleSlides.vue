@@ -42,6 +42,19 @@ const toggleFullscreen = () => {
 }
 
 /**
+ * Hide browser chrome (address bar/tabs) on mobile by scrolling
+ */
+const hideBrowserChrome = () => {
+  // Scroll down slightly to hide address bar on mobile browsers
+  window.scrollTo(0, 1)
+
+  // Also try scrolling to top after a brief delay (helps on some browsers)
+  setTimeout(() => {
+    window.scrollTo(0, 0)
+  }, 100)
+}
+
+/**
  * Custom fullscreen implementation for iOS and unsupported browsers
  */
 const toggleCustomFullscreen = async () => {
@@ -53,8 +66,16 @@ const toggleCustomFullscreen = async () => {
     // Prevent body scrolling when in custom fullscreen
     document.body.style.overflow = 'hidden'
 
+    // Set fixed positioning on body to prevent address bar from showing
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    document.body.style.height = '100%'
+
     // Wait for Vue to update the DOM
     await nextTick()
+
+    // Hide browser chrome (address bar)
+    hideBrowserChrome()
 
     // Force a reflow to ensure iframe resizes properly on mobile
     if (iframeRef.value) {
@@ -65,8 +86,11 @@ const toggleCustomFullscreen = async () => {
       window.dispatchEvent(new Event('resize'))
     }
   } else {
-    // Restore body scrolling
+    // Restore body styles
     document.body.style.overflow = ''
+    document.body.style.position = ''
+    document.body.style.width = ''
+    document.body.style.height = ''
   }
 }
 
@@ -127,14 +151,37 @@ const handleFullscreenChange = () => {
 }
 
 /**
+ * Handle orientation changes while in fullscreen to re-hide browser chrome
+ */
+const handleOrientationChange = () => {
+  if (isCustomFullscreen.value) {
+    // Wait for orientation animation to complete
+    setTimeout(() => {
+      hideBrowserChrome()
+
+      // Force iframe to recalculate size after orientation change
+      if (iframeRef.value) {
+        void iframeRef.value.offsetHeight
+        window.dispatchEvent(new Event('resize'))
+      }
+    }, 200)
+  }
+}
+
+/**
  * Set up event listeners for fullscreen changes
  */
 onMounted(() => {
   document.addEventListener('fullscreenchange', handleFullscreenChange)
+  window.addEventListener('orientationchange', handleOrientationChange)
+  // Also listen to resize as a backup for orientation changes
+  window.addEventListener('resize', handleOrientationChange)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  window.removeEventListener('orientationchange', handleOrientationChange)
+  window.removeEventListener('resize', handleOrientationChange)
 })
 </script>
 
@@ -146,6 +193,7 @@ onBeforeUnmount(() => {
       isCustomFullscreen && 'fixed inset-0 z-[9999] aspect-auto rounded-none border-0',
       props.class
     )"
+    :style="isCustomFullscreen ? 'height: 100dvh; width: 100dvw;' : ''"
   >
     <iframe
       v-if="embedUrl"
