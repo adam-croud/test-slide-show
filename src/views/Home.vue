@@ -12,24 +12,6 @@ import GoogleSlides from '@/components/GoogleSlides.vue'
     <div class="max-w-6xl mx-auto space-y-8">
       <Card class="w-full">
         <CardHeader>
-          <CardTitle>Welcome to Vue 3</CardTitle>
-          <CardDescription>A minimal test setup with modern tooling</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p class="text-sm mb-4">This project includes:</p>
-          <ul class="text-sm space-y-2">
-            <li>✓ Vue 3 + TypeScript</li>
-            <li>✓ Vite</li>
-            <li>✓ Tailwind CSS</li>
-            <li>✓ Vue Router</li>
-            <li>✓ shadcn/ui-vue</li>
-            <li>✓ Google Slides Component</li>
-          </ul>
-        </CardContent>
-      </Card>
-
-      <Card class="w-full">
-        <CardHeader>
           <CardTitle>Google Slides Demo</CardTitle>
           <CardDescription>Replace the url prop with your Google Slides presentation URL</CardDescription>
         </CardHeader>
